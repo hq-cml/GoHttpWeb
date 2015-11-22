@@ -33,6 +33,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 		//请求的是登陆数据，那么执行登陆的逻辑判断
 		fmt.Println("username:", r.Form["username"])
 		fmt.Println("password:", r.Form["password"])
+		//输出到客户端
+		fmt.Fprintf(w, "You name:"+r.Form.Get("username")) //这个写入到w的是输出到客户端的
+		fmt.Fprintf(w, "<br>")
+		fmt.Fprintf(w, "You pwd:"+r.Form.Get("***")) //这个写入到w的是输出到客户端的
 	}
 }
 
