@@ -2,8 +2,9 @@ package main
 
 import (
 	"database/sql"
-	//"fmt"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"strconv"
 )
 
 /*
@@ -32,4 +33,16 @@ func checkErr(err error) {
 func main() {
 	db, err := sql.Open("mysql", "root:123456@/test?charset=utf8")
 	checkErr(err)
+
+	//插入数据
+	stmt, err := db.Prepare("INSERT userinfo SET username=?,departname=?,created=?")
+	checkErr(err)
+
+	res, err := stmt.Exec("qh", "北京", "2015-11-24")
+	checkErr(err)
+
+	id, err := res.LastInsertId()
+	checkErr(err)
+
+	fmt.Println("The last id is " + strconv.Itoa(int(id)))
 }
