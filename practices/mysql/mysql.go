@@ -103,4 +103,7 @@ func main() {
 		fmt.Println(department)
 		fmt.Println(created)
 	}
+
+	//关闭db
+	db.Close()
 }
