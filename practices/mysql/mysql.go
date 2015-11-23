@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	//"fmt"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -23,6 +23,13 @@ CREATE TABLE `userdetail` (
 )
 */
 
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
-	fmt.Println("mysql")
+	db, err := sql.Open("mysql", "root:123456@/test?charset=utf8")
+	checkErr(err)
 }
