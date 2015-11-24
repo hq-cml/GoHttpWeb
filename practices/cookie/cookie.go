@@ -15,7 +15,9 @@ func sayhelloName(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	//读取cookie
-	fmt.Fprintf(w, "Hello world~") //这个写入到w的是输出到客户端的
+	c, _ := r.Cookie("username")
+
+	fmt.Fprintf(w, "Hello world~. Your cookie is:%s:%s", c.Name, c.Value) //这个写入到w的是输出到客户端的
 }
 
 func main() {
