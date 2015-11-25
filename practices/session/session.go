@@ -1,9 +1,13 @@
 package session
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
+	"net/url"
+	"sync"
 	"time"
 )
 
@@ -22,7 +26,7 @@ import (
 type SessionManager struct {
 	cookieName  string     //private cookiename
 	lock        sync.Mutex // protects session
-	provider    Provider
+	storager    Storage
 	maxlifetime int64
 }
 
@@ -35,18 +39,57 @@ type SessionManager struct {
  * SessionDestroy函数用来销毁sid对应的Session变量
  * SessionGC根据maxLifeTime来删除过期的数据
  */
-type Provider interface {
+type Storage interface {
 	SessionInit(sid string) (Session, error)
 	SessionRead(sid string) (Session, error)
 	SessionDestroy(sid string) error
 	SessionGC(maxLifeTime int64)
 }
 
+/*
+ * session接口定义
+ * Session的处理基本就 设置值、读取值、删除值以及获取当前sessionID这四个操作
+ * 所以Session接口实现这四个操作
+ */
+type Session interface {
+	Set(key, value interface{}) error //set session value
+	Get(key interface{}) interface{}  //get session value
+	Delete(key interface{}) error     //delete session value
+	SessionID() string                //back current sessionID
+}
+
 //创建管理器
-func NewManager(provideName, cookieName string, maxlifetime int64) (*SessionManager, error) {
-	provider, ok := provides[provideName]
+func NewManager(storageName, cookieName string, maxlifetime int64) (*SessionManager, error) {
+	storager, ok := storages[storageName]
 	if !ok {
-		return nil, fmt.Errorf("session: unknown provide %q (forgotten import?)", provideName)
+		return nil, fmt.Errorf("session: unknown provide %q (forgotten import?)", storageName)
 	}
-	return &SessionManager{provider: provider, cookieName: cookieName, maxlifetime: maxlifetime}, nil
+	return &SessionManager{storager: storager, cookieName: cookieName, maxlifetime: maxlifetime}, nil
+}
+
+/*
+ * 参照database/sql/driver，先定义好接口，然后具体的存储session的结构只需要：1.实现相应的接口；2.注册，
+ * 相应功能这样就可以使用了，storages全局变量负责存储全部的storager实现，Register函数负责填充storages
+ */
+var storages = make(map[string]Storage)
+
+// Register makes a session provide available by the provided name.
+// If Register is called twice with the same name or if driver is nil,
+// it panics.
+func Register(name string, storager Storage) {
+	if storager == nil {
+		panic("session: Register provide is nil")
+	}
+	if _, dup := storages[name]; dup {
+		panic("session: Register called twice for provide " + name)
+	}
+	storages[name] = storager
+}
+
+func (manager *Manager) sessionId() string {
+	b := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		return ""
+	}
+	return base64.URLEncoding.EncodeToString(b)
 }
