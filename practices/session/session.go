@@ -73,23 +73,41 @@ func NewManager(storageName, cookieName string, maxlifetime int64) (*SessionMana
  */
 var storages = make(map[string]Storage)
 
-// Register makes a session provide available by the provided name.
-// If Register is called twice with the same name or if driver is nil,
-// it panics.
+/*
+ * Register函数，注册一个可用的storager。不能重复注册
+ */
 func Register(name string, storager Storage) {
 	if storager == nil {
-		panic("session: Register provide is nil")
+		panic("session: Register Storage is nil")
 	}
 	if _, dup := storages[name]; dup {
-		panic("session: Register called twice for provide " + name)
+		panic("session: Register called twice for Storage " + name)
 	}
 	storages[name] = storager
 }
 
-func (manager *Manager) sessionId() string {
+//生成全局唯一的Session ID
+func (manager *SessionManager) sessionId() string {
 	b := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return ""
 	}
 	return base64.URLEncoding.EncodeToString(b)
+}
+
+//SessionStart函数，检测是否已经有某个Session与当前来访用户发生了关联，如果没有则创建之。
+func (manager *SessionManager) SessionStart(w http.ResponseWriter, r *http.Request) (session Session) {
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	cookie, err := r.Cookie(manager.cookieName)
+	if err != nil || cookie.Value == "" {
+		sid := manager.sessionId()
+		session, _ = manager.provider.SessionInit(sid)
+		cookie := http.Cookie{Name: manager.cookieName, Value: url.QueryEscape(sid), Path: "/", HttpOnly: true, MaxAge: int(manager.maxlifetime)}
+		http.SetCookie(w, &cookie)
+	} else {
+		sid, _ := url.QueryUnescape(cookie.Value)
+		session, _ = manager.provider.SessionRead(sid)
+	}
+	return
 }
