@@ -113,16 +113,26 @@ func (manager *SessionManager) SessionStart(w http.ResponseWriter, r *http.Reque
 }
 
 //Destroy sessionid
-func (manager *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request) {
+func (manager *SessionManager) SessionDestroy(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(manager.cookieName)
 	if err != nil || cookie.Value == "" {
 		return
 	} else {
 		manager.lock.Lock()
 		defer manager.lock.Unlock()
-		manager.provider.SessionDestroy(cookie.Value)
+		manager.storager.SessionDestroy(cookie.Value)
 		expiration := time.Now()
+		// MaxAge<0 means delete cookie now, equivalently 'Max-Age: 0'
 		cookie := http.Cookie{Name: manager.cookieName, Path: "/", HttpOnly: true, Expires: expiration, MaxAge: -1}
 		http.SetCookie(w, &cookie)
 	}
+}
+
+//GC
+//利用了time包中的定时器功能，当超时maxLifeTime之后调用GC函数，这样就可以保证maxLifeTime时间内的session是可用的
+func (manager *Manager) GC() {
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	manager.storager.SessionGC(manager.maxlifetime)
+	time.AfterFunc(time.Duration(manager.maxlifetime), func() { manager.GC() })
 }
