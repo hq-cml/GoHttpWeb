@@ -79,7 +79,7 @@ func (pder *MemStorage) SessionDestroy(sid string) error {
 	return nil
 }
 
-func (pder *Provider) SessionGC(maxlifetime int64) {
+func (pder *MemStorage) SessionGC(maxlifetime int64) {
 	pder.lock.Lock()
 	defer pder.lock.Unlock()
 
@@ -95,4 +95,15 @@ func (pder *Provider) SessionGC(maxlifetime int64) {
 			break
 		}
 	}
+}
+
+func (pder *MemStorage) SessionUpdate(sid string) error {
+	pder.lock.Lock()
+	defer pder.lock.Unlock()
+	if element, ok := pder.sessions[sid]; ok {
+		element.Value.(*SessionStore).timeAccessed = time.Now()
+		pder.list.MoveToFront(element)
+		return nil
+	}
+	return nil
 }
