@@ -36,3 +36,7 @@ func (st *MemSession) Delete(key interface{}) error {
 	pder.SessionUpdate(st.sid)
 	return nil
 }
+
+func (st *SessionStore) SessionID() string {
+	return st.sid
+}
