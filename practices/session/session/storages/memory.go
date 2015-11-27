@@ -40,3 +40,12 @@ func (st *MemSession) Delete(key interface{}) error {
 func (st *SessionStore) SessionID() string {
 	return st.sid
 }
+
+/*
+ * 内存存储实现，这个结构实现Storage接口
+ */
+type MemStorage struct {
+	lock     sync.Mutex               //用来锁
+	sessions map[string]*list.Element //用来存储在内存
+	list     *list.List               //用来做gc
+}
