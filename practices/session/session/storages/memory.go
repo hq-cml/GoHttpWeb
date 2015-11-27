@@ -49,3 +49,13 @@ type MemStorage struct {
 	sessions map[string]*list.Element //用来存储在内存
 	list     *list.List               //用来做gc
 }
+
+func (pder *MemStorage) SessionInit(sid string) (session.Session, error) {
+	pder.lock.Lock()
+	defer pder.lock.Unlock()
+	v := make(map[interface{}]interface{}, 0)
+	newsess := &SessionStore{sid: sid, timeAccessed: time.Now(), value: v}
+	element := pder.list.PushBack(newsess)
+	pder.sessions[sid] = element
+	return newsess, nil
+}
