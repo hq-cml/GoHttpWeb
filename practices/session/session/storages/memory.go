@@ -69,3 +69,12 @@ func (pder *MemStorage) SessionRead(sid string) (Session, error) {
 	}
 	return nil, nil
 }
+
+func (pder *MemStorage) SessionDestroy(sid string) error {
+	if element, ok := pder.sessions[sid]; ok {
+		delete(pder.sessions, sid)
+		pder.list.Remove(element)
+		return nil
+	}
+	return nil
+}
