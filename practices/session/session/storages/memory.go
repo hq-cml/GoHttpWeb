@@ -30,3 +30,9 @@ func (st *MemSession) Get(key interface{}) interface{} {
 	}
 	return nil
 }
+
+func (st *MemSession) Delete(key interface{}) error {
+	delete(st.value, key)
+	pder.SessionUpdate(st.sid)
+	return nil
+}
