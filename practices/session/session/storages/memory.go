@@ -50,7 +50,7 @@ type MemStorage struct {
 	list     *list.List               //用来做gc
 }
 
-func (pder *MemStorage) SessionInit(sid string) (session.Session, error) {
+func (pder *MemStorage) SessionInit(sid string) (Session, error) {
 	pder.lock.Lock()
 	defer pder.lock.Unlock()
 	v := make(map[interface{}]interface{}, 0)
@@ -58,4 +58,14 @@ func (pder *MemStorage) SessionInit(sid string) (session.Session, error) {
 	element := pder.list.PushBack(newsess)
 	pder.sessions[sid] = element
 	return newsess, nil
+}
+
+func (pder *MemStorage) SessionRead(sid string) (Session, error) {
+	if element, ok := pder.sessions[sid]; ok {
+		return element.Value.(*SessionStore), nil
+	} else {
+		sess, err := pder.SessionInit(sid)
+		return sess, err
+	}
+	return nil, nil
 }
