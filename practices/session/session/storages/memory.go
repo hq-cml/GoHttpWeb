@@ -78,3 +78,21 @@ func (pder *MemStorage) SessionDestroy(sid string) error {
 	}
 	return nil
 }
+
+func (pder *Provider) SessionGC(maxlifetime int64) {
+	pder.lock.Lock()
+	defer pder.lock.Unlock()
+
+	for {
+		element := pder.list.Back()
+		if element == nil {
+			break
+		}
+		if (element.Value.(*SessionStore).timeAccessed.Unix() + maxlifetime) < time.Now().Unix() {
+			pder.list.Remove(element)
+			delete(pder.sessions, element.Value.(*SessionStore).sid)
+		} else {
+			break
+		}
+	}
+}
