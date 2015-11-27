@@ -8,9 +8,10 @@ package session
  *
  * 关于第三个问题，通常有两种方案：cookie和URL重写。
  * 1.Cookie：服务端通过设置Set-cookie头就可以将session的标识符传送到客户端，而客户端此后的每一次请求都会带上这个标识符
- * 2.URL重写：在返回给用户的页面里的所有的URL后面追加session标识符，这样用户在收到响应之后，无论点击响应页面里的哪个链接或提交表单，都会自动带上session标识符，如果客户端禁用了cookie的话，此种方案将会是首选。
+ * 2.URL重写：在返回给用户的页面里的所有的URL后面追加session标识符，这样用户在收到响应之后，无论点击响应页面里的哪个链接
+ *           或提交表单，都会自动带上session标识符，如果客户端禁用了cookie的话，此种方案将会是首选。
  *
- * 本例采用方案1
+ * 本例采用方案1!
  */
 
 import (
@@ -33,7 +34,7 @@ type Session interface {
 	Set(key, value interface{}) error //set session value
 	Get(key interface{}) interface{}  //get session value
 	Delete(key interface{}) error     //delete session value
-	SessionID() string                //back current sessionID
+	SessionID() string                //get current SESSIONID
 }
 
 /*
@@ -62,7 +63,7 @@ type SessionManager struct {
 
 //创建管理器
 func NewManager(storageName, cookieName string, maxlifetime int64) (*SessionManager, error) {
-	storager, ok := storages[storageName]
+	storager, ok := g_storages[storageName]
 	if !ok {
 		return nil, fmt.Errorf("session: unknown storage %q (forgotten import?)", storageName)
 	}
@@ -73,19 +74,20 @@ func NewManager(storageName, cookieName string, maxlifetime int64) (*SessionMana
  * 参照database/sql/driver，先定义好接口，然后具体的存储session的结构只需要：1.实现相应的接口；2.注册，
  * 相应功能这样就可以使用了，storages全局变量负责存储全部的storager实现，Register函数负责填充storages
  */
-var storages = make(map[string]Storage)
+var g_storages = make(map[string]Storage)
 
 /*
  * Register函数，注册一个可用的storager。不能重复注册
+ * 这个函数应该有各种storage的实现在其init中调用
  */
 func Register(name string, storager Storage) {
 	if storager == nil {
 		panic("session: Register Storage is nil")
 	}
-	if _, dup := storages[name]; dup {
+	if _, dup := g_storages[name]; dup {
 		panic("session: Register called twice for Storage " + name)
 	}
-	storages[name] = storager
+	g_storages[name] = storager
 }
 
 //生成全局唯一的Session ID
@@ -104,12 +106,12 @@ func (manager *SessionManager) SessionStart(w http.ResponseWriter, r *http.Reque
 	cookie, err := r.Cookie(manager.cookieName)
 	if err != nil || cookie.Value == "" {
 		sid := manager.sessionId()
-		session, _ = manager.provider.SessionInit(sid)
+		session, _ = manager.storager.SessionInit(sid)
 		cookie := http.Cookie{Name: manager.cookieName, Value: url.QueryEscape(sid), Path: "/", HttpOnly: true, MaxAge: int(manager.maxlifetime)}
 		http.SetCookie(w, &cookie)
 	} else {
 		sid, _ := url.QueryUnescape(cookie.Value)
-		session, _ = manager.provider.SessionRead(sid)
+		session, _ = manager.storager.SessionRead(sid)
 	}
 	return
 }
@@ -122,7 +124,8 @@ func (manager *SessionManager) SessionDestroy(w http.ResponseWriter, r *http.Req
 	} else {
 		manager.lock.Lock()
 		defer manager.lock.Unlock()
-		manager.storager.SessionDestroy(cookie.Value)
+		session_id := cookie.Value
+		manager.storager.SessionDestroy(session_id)
 		expiration := time.Now()
 		// MaxAge<0 means delete cookie now, equivalently 'Max-Age: 0'
 		cookie := http.Cookie{Name: manager.cookieName, Path: "/", HttpOnly: true, Expires: expiration, MaxAge: -1}
