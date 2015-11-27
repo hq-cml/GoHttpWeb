@@ -20,3 +20,13 @@ func (st *MemSession) Set(key, value interface{}) error {
 	pder.SessionUpdate(st.sid)
 	return nil
 }
+
+func (st *MemSession) Get(key interface{}) interface{} {
+	pder.SessionUpdate(st.sid)
+	if v, ok := st.value[key]; ok {
+		return v
+	} else {
+		return nil
+	}
+	return nil
+}
