@@ -31,15 +31,18 @@ func init() {
 	Register("memory", g_memstorage)
 }
 
-func (st *MemSession) Set(key, value interface{}) error {
-	st.value[key] = value
-	g_memstorage.SessionUpdate(st.sid)
+/*
+ * MemSession实现Session接口的：Set/Get/Delete/SessionID方法
+ */
+func (self *MemSession) Set(key, value interface{}) error {
+	self.value[key] = value
+	g_memstorage.SessionUpdate(self.sid)
 	return nil
 }
 
-func (st *MemSession) Get(key interface{}) interface{} {
-	g_memstorage.SessionUpdate(st.sid)
-	if v, ok := st.value[key]; ok {
+func (self *MemSession) Get(key interface{}) interface{} {
+	g_memstorage.SessionUpdate(self.sid)
+	if v, ok := self.value[key]; ok {
 		return v
 	} else {
 		return nil
@@ -47,16 +50,19 @@ func (st *MemSession) Get(key interface{}) interface{} {
 	return nil
 }
 
-func (st *MemSession) Delete(key interface{}) error {
-	delete(st.value, key)
-	g_memstorage.SessionUpdate(st.sid)
+func (self *MemSession) Delete(key interface{}) error {
+	delete(self.value, key)
+	g_memstorage.SessionUpdate(self.sid)
 	return nil
 }
 
-func (st *MemSession) SessionID() string {
-	return st.sid
+func (self *MemSession) SessionID() string {
+	return self.sid
 }
 
+/*
+ * MemStorage实现Storage接口的：SessionInit/SessionRead/SessionDestroy/SessionGC方法
+ */
 func (self *MemStorage) SessionInit(sid string) (Session, error) {
 	self.lock.Lock()
 	defer self.lock.Unlock()

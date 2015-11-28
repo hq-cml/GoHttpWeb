@@ -135,7 +135,7 @@ func (manager *SessionManager) SessionDestroy(w http.ResponseWriter, r *http.Req
 
 //GC
 //利用了time包中的定时器功能，当超时maxLifeTime之后调用GC函数，这样就可以保证maxLifeTime时间内的session是可用的
-func (manager *Manager) GC() {
+func (manager *SessionManager) GC() {
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
 	manager.storager.SessionGC(manager.maxlifetime)
