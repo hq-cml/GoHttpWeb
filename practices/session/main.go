@@ -14,18 +14,18 @@ import (
 )
 
 //全局的session管理器
-var globalSessions *session.SessionManager
+var g_sessions *session.SessionManager
 
 //包初始化函数
 func init() {
 	fmt.Println("Main init")
-	globalSessions, _ = session.NewManager("memory", "GOSESSID", 3600)
-	go globalSessions.GC()
+	g_sessions, _ = session.NewManager("memory", "GOSESSID", 3600)
+	go g_sessions.GC()
 }
 
 //每当有客户访问login，就会有SessionStart，开始了奇幻之旅~
 func login(w http.ResponseWriter, r *http.Request) {
-	sess := globalSessions.SessionStart(w, r)
+	sess := g_sessions.SessionStart(w, r)
 	r.ParseForm()
 	if r.Method == "GET" {
 		fmt.Println("First")

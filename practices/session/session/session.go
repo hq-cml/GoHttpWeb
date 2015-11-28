@@ -33,6 +33,7 @@ func init() {
  * session接口
  * 定义了Session的基本操作：set，get，delete，获取SESSIONID
  * 所以，只要实现了这4个方法的类型，就是一个Session类型
+ * 这里所谓的session类型是指一个session条目，即一个用户对应的session
  */
 type Session interface {
 	Set(key, value interface{}) error //set session value
@@ -43,16 +44,17 @@ type Session interface {
 
 /*
  * session是保存在服务器端的数据，可以以任何的方式存储，比如存储在内存、数据库或者文件
- * 因此抽象出一个Storage接口，每个实现了该接口的一个类型，就代表一种底层存储
+ * 因此抽象出一个Storage接口，每个实现了该接口的类型，就代表一种底层存储
+ * 这是session的总句柄，每个storage包含多个session条目，每个条目归属于一个用户
  *
- * SessionInit函数实现Session的初始化，操作成功则返回此新的Session变量
- * SessionRead函数返回sid所代表的Session变量，如果不存在，那么将以sid为参数调用SessionInit函数创建并返回一个新的Session变量
+ * SessionInit函数实现Session一个条目的初始化，操作成功则返回此新的Session变量
+ * SessionFetch函数返回sid所代表的Session变量条目，如果不存在，那么将以sid为参数调用SessionInit函数创建并返回一个新的Session变量
  * SessionDestroy函数用来销毁sid对应的Session变量
  * SessionGC根据maxLifeTime来删除过期的数据
  */
 type Storage interface {
 	SessionInit(sid string) (Session, error)
-	SessionRead(sid string) (Session, error)
+	SessionFetch(sid string) (Session, error)
 	SessionDestroy(sid string) error
 	SessionGC(maxLifeTime int64)
 }
@@ -117,7 +119,7 @@ func (manager *SessionManager) SessionStart(w http.ResponseWriter, r *http.Reque
 	} else {
 		//cookie[cookie_name]对应的值，其实是sessionid!
 		sid, _ := url.QueryUnescape(cookie.Value)
-		session, _ = manager.storager.SessionRead(sid)
+		session, _ = manager.storager.SessionFetch(sid)
 	}
 	return
 }

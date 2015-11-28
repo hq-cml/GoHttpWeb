@@ -75,7 +75,7 @@ func (self *MemStorage) SessionInit(sid string) (Session, error) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	v := make(map[interface{}]interface{}, 0)
-	newsess := &MemSession{sid: sid, timeAccessed: time.Now(), value: v}
+	newsess := &MemSession{sid: sid, time_accessed: time.Now(), value: v}
 	//将新生成的条目压入队列，开始GC轮回
 	element := self.list.PushBack(newsess)
 	//将新生成的条目以element的形式，放入session中去，用于后续读写
@@ -104,7 +104,9 @@ func (self *MemStorage) SessionDestroy(sid string) error {
 	return nil
 }
 
-func (self *MemStorage) SessionGC(maxlifetime int64) {
+//GC，从最久未被访问的条目，一直向前遍历。
+//如果条目的访问时间+max_life_time比当前时间还小，则表示过期，则在队列以及内存中均予以删除
+func (self *MemStorage) SessionGC(max_life_time int64) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -113,7 +115,7 @@ func (self *MemStorage) SessionGC(maxlifetime int64) {
 		if element == nil {
 			break
 		}
-		if (element.Value.(*MemSession).timeAccessed.Unix() + maxlifetime) < time.Now().Unix() {
+		if (element.Value.(*MemSession).time_accessed.Unix() + max_life_time) < time.Now().Unix() {
 			self.list.Remove(element)
 			delete(self.sessions, element.Value.(*MemSession).sid)
 		} else {
