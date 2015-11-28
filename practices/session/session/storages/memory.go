@@ -15,14 +15,30 @@ type MemSession struct {
 	value        map[interface{}]interface{} //session里面存储的值
 }
 
+/*
+ * 内存存储实现，这个结构实现Storage接口
+ */
+type MemStorage struct {
+	lock     sync.Mutex               //锁
+	sessions map[string]*list.Element //用于存储的内存
+	list     *list.List               //链表，用用于gc
+}
+
+var g_memstorage = &MemStorage{list: list.New()}
+
+func init() {
+	g_memstorage.sessions = make(map[string]*list.Element, 0)
+	Register("memory", g_memstorage)
+}
+
 func (st *MemSession) Set(key, value interface{}) error {
 	st.value[key] = value
-	pder.SessionUpdate(st.sid)
+	g_memstorage.SessionUpdate(st.sid)
 	return nil
 }
 
 func (st *MemSession) Get(key interface{}) interface{} {
-	pder.SessionUpdate(st.sid)
+	g_memstorage.SessionUpdate(st.sid)
 	if v, ok := st.value[key]; ok {
 		return v
 	} else {
@@ -33,82 +49,68 @@ func (st *MemSession) Get(key interface{}) interface{} {
 
 func (st *MemSession) Delete(key interface{}) error {
 	delete(st.value, key)
-	pder.SessionUpdate(st.sid)
+	g_memstorage.SessionUpdate(st.sid)
 	return nil
 }
 
-func (st *SessionStore) SessionID() string {
+func (st *MemSession) SessionID() string {
 	return st.sid
 }
 
-/*
- * 内存存储实现，这个结构实现Storage接口
- */
-type MemStorage struct {
-	lock     sync.Mutex               //用来锁
-	sessions map[string]*list.Element //用来存储在内存
-	list     *list.List               //用来做gc
-}
-
-func (pder *MemStorage) SessionInit(sid string) (Session, error) {
-	pder.lock.Lock()
-	defer pder.lock.Unlock()
+func (self *MemStorage) SessionInit(sid string) (Session, error) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	v := make(map[interface{}]interface{}, 0)
 	newsess := &SessionStore{sid: sid, timeAccessed: time.Now(), value: v}
-	element := pder.list.PushBack(newsess)
-	pder.sessions[sid] = element
+	element := self.list.PushBack(newsess)
+	self.sessions[sid] = element
 	return newsess, nil
 }
 
-func (pder *MemStorage) SessionRead(sid string) (Session, error) {
-	if element, ok := pder.sessions[sid]; ok {
+func (self *MemStorage) SessionRead(sid string) (Session, error) {
+	if element, ok := self.sessions[sid]; ok {
 		return element.Value.(*SessionStore), nil
 	} else {
-		sess, err := pder.SessionInit(sid)
+		sess, err := self.SessionInit(sid)
 		return sess, err
 	}
 	return nil, nil
 }
 
-func (pder *MemStorage) SessionDestroy(sid string) error {
-	if element, ok := pder.sessions[sid]; ok {
-		delete(pder.sessions, sid)
-		pder.list.Remove(element)
+func (self *MemStorage) SessionDestroy(sid string) error {
+	if element, ok := self.sessions[sid]; ok {
+		delete(self.sessions, sid)
+		self.list.Remove(element)
 		return nil
 	}
 	return nil
 }
 
-func (pder *MemStorage) SessionGC(maxlifetime int64) {
-	pder.lock.Lock()
-	defer pder.lock.Unlock()
+func (self *MemStorage) SessionGC(maxlifetime int64) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 
 	for {
-		element := pder.list.Back()
+		element := self.list.Back()
 		if element == nil {
 			break
 		}
 		if (element.Value.(*SessionStore).timeAccessed.Unix() + maxlifetime) < time.Now().Unix() {
-			pder.list.Remove(element)
-			delete(pder.sessions, element.Value.(*SessionStore).sid)
+			self.list.Remove(element)
+			delete(self.sessions, element.Value.(*SessionStore).sid)
 		} else {
 			break
 		}
 	}
 }
 
-func (pder *MemStorage) SessionUpdate(sid string) error {
-	pder.lock.Lock()
-	defer pder.lock.Unlock()
-	if element, ok := pder.sessions[sid]; ok {
+func (self *MemStorage) SessionUpdate(sid string) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	if element, ok := self.sessions[sid]; ok {
 		element.Value.(*SessionStore).timeAccessed = time.Now()
-		pder.list.MoveToFront(element)
+		self.list.MoveToFront(element)
 		return nil
 	}
 	return nil
-}
-
-func init() {
-	pder.sessions = make(map[string]*list.Element, 0)
-	session.Register("memory", pder)
 }
