@@ -25,6 +25,10 @@ import (
 	"time"
 )
 
+func init() {
+	fmt.Println("CCCCCCCCCCCCCCCCCC")
+}
+
 /*
  * session接口
  * 定义了Session的基本操作：set，get，delete，获取SESSIONID
@@ -132,7 +136,7 @@ func (manager *SessionManager) SessionDestroy(w http.ResponseWriter, r *http.Req
 		manager.storager.SessionDestroy(session_id)
 		expiration := time.Now()
 		// MaxAge<0 means delete cookie now, equivalently 'Max-Age: 0'
-		cookie := http.Cookie{Name: manager.cookieName, Path: "/", HttpOnly: true, Expires: expiration, MaxAge: -1}
+		cookie := http.Cookie{Name: manager.cookie_name, Path: "/", HttpOnly: true, Expires: expiration, MaxAge: -1}
 		http.SetCookie(w, &cookie)
 	}
 }
@@ -142,6 +146,6 @@ func (manager *SessionManager) SessionDestroy(w http.ResponseWriter, r *http.Req
 func (manager *SessionManager) GC() {
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
-	manager.storager.SessionGC(manager.maxlifetime)
-	time.AfterFunc(time.Duration(manager.maxlifetime), func() { manager.GC() }) //自己调用自己
+	manager.storager.SessionGC(manager.max_life_time)
+	time.AfterFunc(time.Duration(manager.max_life_time), func() { manager.GC() }) //自己调用自己
 }

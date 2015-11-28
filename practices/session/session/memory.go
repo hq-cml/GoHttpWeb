@@ -2,6 +2,7 @@ package session
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -27,6 +28,7 @@ type MemStorage struct {
 var g_memstorage = &MemStorage{list: list.New()}
 
 func init() {
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAA")
 	g_memstorage.sessions = make(map[string]*list.Element, 0)
 	Register("memory", g_memstorage)
 }
@@ -67,7 +69,7 @@ func (self *MemStorage) SessionInit(sid string) (Session, error) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	v := make(map[interface{}]interface{}, 0)
-	newsess := &SessionStore{sid: sid, timeAccessed: time.Now(), value: v}
+	newsess := &MemSession{sid: sid, timeAccessed: time.Now(), value: v}
 	element := self.list.PushBack(newsess)
 	self.sessions[sid] = element
 	return newsess, nil
@@ -75,7 +77,7 @@ func (self *MemStorage) SessionInit(sid string) (Session, error) {
 
 func (self *MemStorage) SessionRead(sid string) (Session, error) {
 	if element, ok := self.sessions[sid]; ok {
-		return element.Value.(*SessionStore), nil
+		return element.Value.(*MemSession), nil
 	} else {
 		sess, err := self.SessionInit(sid)
 		return sess, err
@@ -101,9 +103,9 @@ func (self *MemStorage) SessionGC(maxlifetime int64) {
 		if element == nil {
 			break
 		}
-		if (element.Value.(*SessionStore).timeAccessed.Unix() + maxlifetime) < time.Now().Unix() {
+		if (element.Value.(*MemSession).timeAccessed.Unix() + maxlifetime) < time.Now().Unix() {
 			self.list.Remove(element)
-			delete(self.sessions, element.Value.(*SessionStore).sid)
+			delete(self.sessions, element.Value.(*MemSession).sid)
 		} else {
 			break
 		}
@@ -114,7 +116,7 @@ func (self *MemStorage) SessionUpdate(sid string) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	if element, ok := self.sessions[sid]; ok {
-		element.Value.(*SessionStore).timeAccessed = time.Now()
+		element.Value.(*MemSession).timeAccessed = time.Now()
 		self.list.MoveToFront(element)
 		return nil
 	}

@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	//此处使用相对路径，正式项目应该用绝对路径为佳
-	//"github.com/hq-cml/GoHttpWeb/practices/session/session"
-	"./session"
+	"github.com/hq-cml/GoHttpWeb/practices/session/session"
+	//"github.com/hq-cml/GoHttpWeb/practices/session/session/storages/memory"
+	//"./session"
 )
 
 //全局的session管理器
@@ -17,7 +18,8 @@ var globalSessions *session.SessionManager
 
 //包初始化函数
 func init() {
-	globalSessions, _ = session.NewManager("memory", "gosessionid", 3600)
+	fmt.Println("BBBBBBBBBBBBBB")
+	globalSessions, _ = session.NewManager("memory", "GOSESSID", 3600)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
