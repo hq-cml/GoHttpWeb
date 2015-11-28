@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	fmt.Println("CCCCCCCCCCCCCCCCCC")
+	fmt.Println("Session init")
 }
 
 /*
@@ -110,8 +110,8 @@ func (manager *SessionManager) SessionStart(w http.ResponseWriter, r *http.Reque
 	defer manager.lock.Unlock()
 	cookie, err := r.Cookie(manager.cookie_name)
 	if err != nil || cookie.Value == "" {
-		sid := manager.sessionId() //生成全局唯一的sid
-		session, _ = manager.storager.SessionInit(sid)
+		sid := manager.sessionId()                     //生成全局唯一的sid
+		session, _ = manager.storager.SessionInit(sid) //生成一个全新的session条目（list的一个element）
 		cookie := http.Cookie{Name: manager.cookie_name, Value: url.QueryEscape(sid), Path: "/", HttpOnly: true, MaxAge: int(manager.max_life_time)}
 		http.SetCookie(w, &cookie)
 	} else {
