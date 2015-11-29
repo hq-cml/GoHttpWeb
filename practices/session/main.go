@@ -19,7 +19,7 @@ var g_sessions *session.SessionManager
 func init() {
 	fmt.Println("Main init")
 	g_sessions, _ = session.NewManager("memory", "GOSESSID", 3600)
-	go g_sessions.GC()
+	go g_sessions.GC() //开启GC线程~
 }
 
 //每当有客户访问login，就会有SessionStart，开始了奇幻之旅~
