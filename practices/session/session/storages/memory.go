@@ -1,8 +1,9 @@
-package session
+package storages
 
 import (
 	"container/list"
 	"fmt"
+	"github.com/hq-cml/GoHttpWeb/practices/session/session"
 	"sync"
 	"time"
 )
@@ -33,7 +34,7 @@ func init() {
 	fmt.Println("Mem storage init")
 	g_memstorage.list = list.New()
 	g_memstorage.sessions = make(map[string]*list.Element, 0)
-	Register("memory", g_memstorage)
+	session.Register("memory", g_memstorage)
 }
 
 /*
@@ -71,7 +72,7 @@ func (self *MemSession) SessionID() string {
  * MemStorage实现Storage接口的：SessionInit/SessionFetch/SessionDestroy/SessionGC方法
  */
 //当新来一个用户的时候，新增一个session条目（element）
-func (self *MemStorage) SessionInit(sid string) (Session, error) {
+func (self *MemStorage) SessionInit(sid string) (session.Session, error) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	v := make(map[interface{}]interface{}, 0)
@@ -84,7 +85,7 @@ func (self *MemStorage) SessionInit(sid string) (Session, error) {
 }
 
 //根据sid，从storage中取出整个对应的条目（Element），以MemSession形式返回
-func (self *MemStorage) SessionFetch(sid string) (Session, error) {
+func (self *MemStorage) SessionFetch(sid string) (session.Session, error) {
 	if element, ok := self.sessions[sid]; ok {
 		return element.Value.(*MemSession), nil
 	} else {

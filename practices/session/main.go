@@ -8,7 +8,7 @@ import (
 
 	//此处使用相对路径，正式项目应该用绝对路径为佳
 	"github.com/hq-cml/GoHttpWeb/practices/session/session"
-	//"github.com/hq-cml/GoHttpWeb/practices/session/session/storages/memory"
+	_ "github.com/hq-cml/GoHttpWeb/practices/session/session/storages"
 	//"./session"
 )
 
