@@ -20,7 +20,7 @@ type RedisSession struct {
 }
 
 /*
- * 内存存储实现，这个结构实现Storage接口
+ * Redis存储实现，这个结构实现Storage接口
  * 这是一个整体session的对应的结构
  */
 type RedisStorage struct {
