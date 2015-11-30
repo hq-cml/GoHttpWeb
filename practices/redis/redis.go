@@ -26,4 +26,8 @@ func main() {
 		println(i, ":", string(v))
 	}
 	client.Del("l")
+
+	//hash操作
+	client.Hset("hash", "aaa", []byte("111"))
+	client.Del("hash")
 }
