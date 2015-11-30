@@ -28,3 +28,12 @@ type RedisStorage struct {
 	sessions map[string]*list.Element //用于存储的内存，key是sid，value是list的Element（其实本质上，是一个）
 	list     *list.List               //链表，用于gc
 }
+
+var g_redis_storage = &RedisStorage{}
+
+func init() {
+	fmt.Println("Redis storage init")
+	g_redis_storage.list = list.New()
+	g_redis_storage.sessions = make(map[string]*list.Element, 0)
+	session.Register("redis", g_redis_storage)
+}
