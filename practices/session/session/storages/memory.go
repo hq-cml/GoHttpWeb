@@ -10,7 +10,7 @@ import (
 
 /*
  * 内存Session实现，这个结构实现Session接口
- * 这个跟准确的说是一个用户对应的session结构，而不是整体的session结构
+ * 这个更准确的说是一个用户对应的session结构，而不是整体的session结构
  */
 type MemSession struct {
 	sid           string                      //session id唯一标示
