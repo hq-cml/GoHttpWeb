@@ -102,9 +102,42 @@ func (self *RedisStorage) SessionFetch(sid string) (session.Session, error) {
 //根据sid，销毁storage中对应的条目，两处，内存中和gc队列中均需要清除
 func (self *RedisStorage) SessionDestroy(sid string) error {
 	if element, ok := self.sessions[sid]; ok {
-		self.redis_client.Del(sid)
 		delete(self.sessions, sid)
 		self.list.Remove(element)
+		self.redis_client.Del(sid)
+		return nil
+	}
+	return nil
+}
+
+//GC，从最久未被访问的条目，一直向前遍历。
+//如果条目的访问时间+max_life_time比当前时间还小，则表示过期，则在队列以及内存中均予以删除
+func (self *RedisStorage) SessionGC(max_life_time int64) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	for {
+		element := self.list.Back()
+		if element == nil {
+			break
+		}
+		if (element.Value.(*MemSession).time_accessed.Unix() + max_life_time) < time.Now().Unix() {
+			self.list.Remove(element)
+			delete(self.sessions, element.Value.(*MemSession).sid)
+			self.redis_client.Del(sid)
+		} else {
+			break
+		}
+	}
+}
+
+//跟新session存储中sid对应的条目（element）的更新时间，并且将对应条目前移
+func (self *RedisStorage) SessionUpdate(sid string) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	if element, ok := self.sessions[sid]; ok {
+		element.Value.(*RedisSession).time_accessed = time.Now()
+		self.list.MoveToFront(element)
 		return nil
 	}
 	return nil
