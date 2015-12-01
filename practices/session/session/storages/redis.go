@@ -69,6 +69,19 @@ func (self *RedisSession) Delete(key interface{}) error {
 	return nil
 }
 
-func (self *MemSession) SessionID() string {
+func (self *RedisSession) SessionID() string {
 	return self.sid
+}
+
+/*
+ * RedisStorage实现Storage接口的：SessionInit/SessionFetch/SessionDestroy/SessionGC方法
+ */
+//当新来一个用户的时候，新增一个session条目（element），并将之返回
+func (self *RedisStorage) SessionInit(sid string) (session.Session, error) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	newsess := &MemSession{sid: sid, time_accessed: time.Now()}
+	//将新生成的条目压入队列，开始GC轮回
+	element := self.list.PushBack(newsess)
+	return newsess, nil
 }
