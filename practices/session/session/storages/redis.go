@@ -47,17 +47,24 @@ func init() {
 func (self *RedisSession) Set(key, value interface{}) error {
 	self.redis_client.Hset(self.sid, key, []byte(value))
 	//更新对应条目的访问时间
-	g_memstorage.SessionUpdate(self.sid)
+	g_redis_storage.SessionUpdate(self.sid)
 	return nil
 }
 
-func (self *MemSession) Get(key interface{}) interface{} {
+func (self *RedisSession) Get(key interface{}) interface{} {
 	//更新对应条目的访问时间
-	g_memstorage.SessionUpdate(self.sid)
+	g_redis_storage.SessionUpdate(self.sid)
 	if v, ok := self.redis_client.Hget(self.sid, key); ok {
 		return v
 	} else {
 		return nil
 	}
+	return nil
+}
+
+func (self *RedisSession) Delete(key interface{}) error {
+	//更新对应条目的访问时间
+	g_redis_storage.SessionUpdate(self.sid)
+	self.redis_client.Hdel(self.sid)
 	return nil
 }
