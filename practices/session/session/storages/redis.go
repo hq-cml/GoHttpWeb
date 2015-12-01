@@ -50,3 +50,14 @@ func (self *RedisSession) Set(key, value interface{}) error {
 	g_memstorage.SessionUpdate(self.sid)
 	return nil
 }
+
+func (self *MemSession) Get(key interface{}) interface{} {
+	//更新对应条目的访问时间
+	g_memstorage.SessionUpdate(self.sid)
+	if v, ok := self.redis_client.Hget(self.sid, key); ok {
+		return v
+	} else {
+		return nil
+	}
+	return nil
+}
