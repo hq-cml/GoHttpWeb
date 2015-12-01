@@ -25,9 +25,9 @@ type RedisSession struct {
  */
 type RedisStorage struct {
 	redis_client goredis.Client
-	lock         sync.Mutex //锁
-	//sessions map[string]*list.Element //用于存储的内存，key是sid，value是list的Element（其实本质上，是一个）
-	list *list.List //链表，用于gc
+	lock         sync.Mutex               //锁
+	sessions     map[string]*list.Element //用于存储的内存，key是sid，value是list的Element（其实本质上，是一个）
+	list         *list.List               //链表，用于gc
 }
 
 var g_redis_storage = &RedisStorage{}
@@ -37,7 +37,7 @@ func init() {
 	// 设置端口为redis默认端口
 	g_redis_storage.redis_client.Addr = "127.0.0.1:6379"
 	g_redis_storage.list = list.New()
-	//g_redis_storage.sessions = make(map[string]*list.Element, 0)
+	g_redis_storage.sessions = make(map[string]*list.Element, 0)
 	session.Register("redis", g_redis_storage)
 }
 
@@ -83,5 +83,18 @@ func (self *RedisStorage) SessionInit(sid string) (session.Session, error) {
 	newsess := &MemSession{sid: sid, time_accessed: time.Now()}
 	//将新生成的条目压入队列，开始GC轮回
 	element := self.list.PushBack(newsess)
+	//将新生成的条目以element的形式，放入session中去，用于后续读写
+	self.sessions[sid] = element
 	return newsess, nil
+}
+
+//根据sid，从storage中取出整个对应的条目（Element），以MemSession形式返回
+func (self *RedisStorage) SessionFetch(sid string) (session.Session, error) {
+	if element, ok := self.sessions[sid]; ok {
+		return element.Value.(*RedisSession), nil
+	} else {
+		sess, err := self.SessionInit(sid)
+		return sess, err
+	}
+	return nil, nil
 }
