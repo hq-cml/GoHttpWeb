@@ -68,3 +68,7 @@ func (self *RedisSession) Delete(key interface{}) error {
 	self.redis_client.Hdel(self.sid)
 	return nil
 }
+
+func (self *MemSession) SessionID() string {
+	return self.sid
+}
