@@ -98,3 +98,14 @@ func (self *RedisStorage) SessionFetch(sid string) (session.Session, error) {
 	}
 	return nil, nil
 }
+
+//根据sid，销毁storage中对应的条目，两处，内存中和gc队列中均需要清除
+func (self *RedisStorage) SessionDestroy(sid string) error {
+	if element, ok := self.sessions[sid]; ok {
+		self.redis_client.Del(sid)
+		delete(self.sessions, sid)
+		self.list.Remove(element)
+		return nil
+	}
+	return nil
+}
