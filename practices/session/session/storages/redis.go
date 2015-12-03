@@ -99,7 +99,7 @@ func (self *RedisSession) SessionID() string {
 func (self *RedisStorage) SessionInit(sid string) (session.Session, error) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
-	newsess := &MemSession{sid: sid, time_accessed: time.Now()}
+	newsess := &RedisSession{sid: sid, time_accessed: time.Now()}
 	//将新生成的条目压入队列，开始GC轮回
 	element := self.list.PushBack(newsess)
 	//将新生成的条目以element的形式，放入session中去，用于后续读写
@@ -107,7 +107,7 @@ func (self *RedisStorage) SessionInit(sid string) (session.Session, error) {
 	return newsess, nil
 }
 
-//根据sid，从storage中取出整个对应的条目（Element），以MemSession形式返回
+//根据sid，从storage中取出整个对应的条目（Element），以RedisSession形式返回
 func (self *RedisStorage) SessionFetch(sid string) (session.Session, error) {
 	if element, ok := self.sessions[sid]; ok {
 		return element.Value.(*RedisSession), nil
@@ -140,10 +140,10 @@ func (self *RedisStorage) SessionGC(max_life_time int64) {
 		if element == nil {
 			break
 		}
-		if (element.Value.(*MemSession).time_accessed.Unix() + max_life_time) < time.Now().Unix() {
+		if (element.Value.(*RedisSession).time_accessed.Unix() + max_life_time) < time.Now().Unix() {
 			self.list.Remove(element)
-			delete(self.sessions, element.Value.(*MemSession).sid)
-			g_redis_client.Del(element.Value.(*MemSession).sid)
+			delete(self.sessions, element.Value.(*RedisSession).sid)
+			g_redis_client.Del(element.Value.(*RedisSession).sid)
 		} else {
 			break
 		}
