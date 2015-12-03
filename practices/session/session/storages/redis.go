@@ -45,16 +45,30 @@ func init() {
  * RedisSession实现Session接口的：Set/Get/Delete/SessionID方法
  */
 func (self *RedisSession) Set(key, value interface{}) error {
-	g_redis_client.Hset(self.sid, key, []byte(value))
+	var k string
+	var v []byte
+	var ok bool
+	if k, ok = key.(string); !ok {
+		return nil
+	}
+	if v, ok = value.([]byte); !ok {
+		return nil
+	}
+	g_redis_client.Hset(self.sid, k, v)
 	//更新对应条目的访问时间
 	g_redis_storage.SessionUpdate(self.sid)
 	return nil
 }
 
 func (self *RedisSession) Get(key interface{}) interface{} {
+	var k string
+	var ok bool
+	if k, ok = key.(string); !ok {
+		return nil
+	}
 	//更新对应条目的访问时间
 	g_redis_storage.SessionUpdate(self.sid)
-	if v, ok := g_redis_client.Hget(self.sid, key); ok {
+	if v, err := g_redis_client.Hget(self.sid, k); err != nil {
 		return v
 	} else {
 		return nil
@@ -63,9 +77,14 @@ func (self *RedisSession) Get(key interface{}) interface{} {
 }
 
 func (self *RedisSession) Delete(key interface{}) error {
+	var k string
+	var ok bool
+	if k, ok = key.(string); !ok {
+		return nil
+	}
 	//更新对应条目的访问时间
 	g_redis_storage.SessionUpdate(self.sid)
-	g_redis_client.Hdel(self.sid)
+	g_redis_client.Hdel(self.sid, k)
 	return nil
 }
 
@@ -124,7 +143,7 @@ func (self *RedisStorage) SessionGC(max_life_time int64) {
 		if (element.Value.(*MemSession).time_accessed.Unix() + max_life_time) < time.Now().Unix() {
 			self.list.Remove(element)
 			delete(self.sessions, element.Value.(*MemSession).sid)
-			g_redis_client.Del(sid)
+			g_redis_client.Del(element.Value.(*MemSession).sid)
 		} else {
 			break
 		}
