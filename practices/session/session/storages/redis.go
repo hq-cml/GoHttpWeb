@@ -24,18 +24,18 @@ type RedisSession struct {
  * 这是一个整体session的对应的结构
  */
 type RedisStorage struct {
-	redis_client goredis.Client
-	lock         sync.Mutex               //锁
-	sessions     map[string]*list.Element //用于存储的内存，key是sid，value是list的Element（其实本质上，是一个）
-	list         *list.List               //链表，用于gc
+	lock     sync.Mutex               //锁
+	sessions map[string]*list.Element //用于存储的内存，key是sid，value是list的Element（其实本质上，是一个）
+	list     *list.List               //链表，用于gc
 }
 
 var g_redis_storage = &RedisStorage{}
+var g_redis_client goredis.Client
 
 func init() {
 	fmt.Println("Redis storage init")
 	// 设置端口为redis默认端口
-	g_redis_storage.redis_client.Addr = "127.0.0.1:6379"
+	g_redis_client.Addr = "127.0.0.1:6379"
 	g_redis_storage.list = list.New()
 	g_redis_storage.sessions = make(map[string]*list.Element, 0)
 	session.Register("redis", g_redis_storage)
@@ -45,7 +45,7 @@ func init() {
  * RedisSession实现Session接口的：Set/Get/Delete/SessionID方法
  */
 func (self *RedisSession) Set(key, value interface{}) error {
-	self.redis_client.Hset(self.sid, key, []byte(value))
+	g_redis_client.Hset(self.sid, key, []byte(value))
 	//更新对应条目的访问时间
 	g_redis_storage.SessionUpdate(self.sid)
 	return nil
@@ -54,7 +54,7 @@ func (self *RedisSession) Set(key, value interface{}) error {
 func (self *RedisSession) Get(key interface{}) interface{} {
 	//更新对应条目的访问时间
 	g_redis_storage.SessionUpdate(self.sid)
-	if v, ok := self.redis_client.Hget(self.sid, key); ok {
+	if v, ok := g_redis_client.Hget(self.sid, key); ok {
 		return v
 	} else {
 		return nil
@@ -65,7 +65,7 @@ func (self *RedisSession) Get(key interface{}) interface{} {
 func (self *RedisSession) Delete(key interface{}) error {
 	//更新对应条目的访问时间
 	g_redis_storage.SessionUpdate(self.sid)
-	self.redis_client.Hdel(self.sid)
+	g_redis_client.Hdel(self.sid)
 	return nil
 }
 
@@ -104,7 +104,7 @@ func (self *RedisStorage) SessionDestroy(sid string) error {
 	if element, ok := self.sessions[sid]; ok {
 		delete(self.sessions, sid)
 		self.list.Remove(element)
-		self.redis_client.Del(sid)
+		g_redis_client.Del(sid)
 		return nil
 	}
 	return nil
@@ -124,7 +124,7 @@ func (self *RedisStorage) SessionGC(max_life_time int64) {
 		if (element.Value.(*MemSession).time_accessed.Unix() + max_life_time) < time.Now().Unix() {
 			self.list.Remove(element)
 			delete(self.sessions, element.Value.(*MemSession).sid)
-			self.redis_client.Del(sid)
+			g_redis_client.Del(sid)
 		} else {
 			break
 		}
