@@ -18,7 +18,8 @@ var g_sessions *session.SessionManager
 //包初始化函数
 func init() {
 	fmt.Println("Main init")
-	g_sessions, _ = session.NewManager("memory", "GOSESSID", 3600)
+	//g_sessions, _ = session.NewManager("memory", "GOSESSID", 3600)
+	g_sessions, _ = session.NewManager("redis", "GOSESSID", 3600)
 	go g_sessions.GC() //开启GC线程~
 }
 
