@@ -37,6 +37,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("Not First")
 		sess.Set("username", r.Form["username"])
+		fmt.Printf("Set SESSION:%+v\n", r.Form["username"])
 		http.Redirect(w, r, "/", 302)
 	}
 }
@@ -44,6 +45,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 func hello(w http.ResponseWriter, r *http.Request) {
 	sess := g_sessions.SessionStart(w, r)
 	if sess.Get("username") == nil {
+		fmt.Println("AAAAAAAAAAAAAAA")
 		http.Redirect(w, r, "/login", 302)
 		return
 	}
